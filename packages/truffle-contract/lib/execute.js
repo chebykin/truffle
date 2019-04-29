@@ -133,6 +133,7 @@ var execute = {
           );
           resolve(result);
         } catch (err) {
+          err.stack += `\nOriginal stack: ${originalStackTrace}`;
           reject(err);
         }
       });
@@ -151,15 +152,23 @@ var execute = {
     var web3 = constructor.web3;
 
     return function() {
+      const originalStackTrace = new Error().stack;
+
       var deferred;
       var args = Array.prototype.slice.call(arguments);
       var params = utils.getTxParams.call(constructor, methodABI, args);
       var promiEvent = new Web3PromiEvent();
 
+      function appendOriginalStackTrace(e) {
+        e.stack += `\nOriginal stack: ${originalStackTrace}`;
+        promiEvent.reject(e);
+      }
+
       var context = {
         contract: constructor, // Can't name this field `constructor` or `_constructor`
         promiEvent: promiEvent,
-        params: params
+        params: params,
+        originalStackTrace: originalStackTrace
       };
 
       constructor
@@ -177,9 +186,9 @@ var execute = {
               deferred.catch(override.start.bind(constructor, context));
               handlers.setup(deferred, context);
             })
-            .catch(promiEvent.reject);
+            .catch(appendOriginalStackTrace);
         })
-        .catch(promiEvent.reject);
+        .catch(appendOriginalStackTrace);
 
       return promiEvent.eventEmitter;
     };

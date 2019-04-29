@@ -63,6 +63,7 @@ var override = {
       if (reason) {
         web3Error.reason = reason;
         web3Error.message += ` -- Reason given: ${reason}.`;
+        web3Error.stack += `\nOriginal stack: ${context.originalStackTrace}`;
       }
 
       return context.promiEvent.reject(web3Error);
